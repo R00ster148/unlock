@@ -1,226 +1,116 @@
-<!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>Game Unlock</title>
-
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: 
-#101116;
-      color: white;
-      font-family: Arial, sans-serif;
-    }
-
-    .container {
-      width: 90%;
-      max-width: 420px;
-      padding: 35px;
-      background: 
-#1b1d25;
-      border: 1px solid 
-#333642;
-      border-radius: 14px;
-      text-align: center;
-    }
-
-    h1 {
-      margin-top: 0;
-      font-size: 28px;
-    }
-
-    p {
-      color: #aaa;
-      line-height: 1.5;
-    }
-
-    input[type="file"] {
-      width: 100%;
-      margin: 22px 0;
-      padding: 12px;
-      background: 
-#292c36;
-      color: white;
-      border: 1px solid 
-#414554;
-      border-radius: 7px;
-    }
-
-    button {
-      width: 100%;
-      padding: 14px;
-      border: none;
-      border-radius: 7px;
-      background: 
-#5865f2;
-      color: white;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: 
-#4752c4;
-    }
-
-    button:disabled {
-      background: 
-#414454;
-      cursor: not-allowed;
-    }
-
-    #status {
-      margin-top: 20px;
-      font-size: 14px;
-      overflow-wrap: anywhere;
-    }
-
-    .success {
-      color: 
-#57d68d;
-    }
-
-    .error {
-      color: 
-#ff6464;
-    }
-
-    .info {
-      color: #aaa;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Game Download</title>
 </head>
+<body bgcolor="#c0c0c0" text="#000000" link="#0000ee" vlink="#551a8b">
 
-<body>
+<center>
+<table width="520" border="2" cellpadding="10" cellspacing="0" bgcolor="#ffffff">
+<tr>
+<td bgcolor="#000080">
+<font face="Arial" color="#ffffff" size="4"><b>Game Download</b></font>
+</td>
+</tr>
+<tr>
+<td>
+<font face="Times New Roman" size="3">
 
-  <div class="container">
+<p>To download the game you need a key file (<b>.xkcd</b>). Pick your key file below and press <b>Unlock</b>.</p>
 
-    <h1>Game Unlock</h1>
+<p>Each key can be used 3 times.</p>
 
-    <p>
-      Upload your signed XKCD key file to unlock
-      and download the game installer.
-    </p>
+<hr>
 
-    <input
-      type="file"
-      id="keyFile"
-      accept=".xkcd"
-    >
+<form id="form" onsubmit="return false">
+<p><b>Key file:</b><br>
+<input type="file" id="file" accept=".xkcd"></p>
+<p><input type="submit" id="go" value="Unlock"></p>
+</form>
 
-    <button id="redeemButton">
-      Redeem Key
-    </button>
+<p id="status">&nbsp;</p>
 
-    <div id="status" class="info">
-      Waiting for key file...
-    </div>
+<hr>
 
-  </div>
+<p><font size="2"><b>Help</b><br>
+- If it says the key has been used 3 times, you need a new key.<br>
+- If nothing happens, check your internet connection and try again.<br>
+- Don't share your key. Once it's used up it's gone.</font></p>
 
-  <script>
-    const WORKER_URL =
-      "https://key-checker.r00ster.workers.dev/redeem";
+</font>
+</td>
+</tr>
+</table>
 
-    const fileInput = document.getElementById("keyFile");
-    const redeemButton = document.getElementById("redeemButton");
-    const status = document.getElementById("status");
+<p><font face="Arial" size="1">Last updated 18/11/2026</font></p>
+</center>
 
-    function setStatus(message, type) {
-      status.textContent = message;
-      status.className = type;
+<script>
+// ---- Edit these ----
+var WORKER_URL = "https://key-checker.r00ster.workers.dev/redeem";
+var SAVE_AS    = "c58dglw9cr7d1.jpeg";
+// --------------------
+
+var fileInput = document.getElementById("file");
+var go = document.getElementById("go");
+var status = document.getElementById("status");
+
+function say(msg, colour) {
+  status.innerHTML = "";
+  var f = document.createElement("font");
+  f.color = colour || "#000000";
+  f.textContent = msg;
+  status.appendChild(f);
+}
+
+document.getElementById("form").onsubmit = function () {
+  var file = fileInput.files[0];
+  if (!file) { say("Please choose a key file first.", "#cc0000"); return false; }
+  if (!/\.xkcd$/i.test(file.name)) { say("That is not a .xkcd key file.", "#cc0000"); return false; }
+  if (file.size > 2048) { say("That file is too big to be a key.", "#cc0000"); return false; }
+
+  go.disabled = true;
+  go.value = "Please wait...";
+  say("Checking key...");
+
+  fetch(WORKER_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/octet-stream" },
+    body: file
+  })
+  .then(function (res) {
+    if (!res.ok) {
+      return res.json().catch(function () { return {}; }).then(function (d) {
+        throw new Error(d.error || "Something went wrong. Try again.");
+      });
     }
+    say("Key accepted. Downloading...");
+    return res.blob();
+  })
+  .then(function (blob) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = SAVE_AS;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+    say("Done! Your download should have started.", "#008000");
+  })
+  .catch(function (err) {
+    say(err.message === "Failed to fetch"
+      ? "Could not reach the download server. Try again later."
+      : err.message, "#cc0000");
+  })
+  .finally(function () {
+    go.disabled = false;
+    go.value = "Unlock";
+  });
 
-    redeemButton.addEventListener("click", async () => {
-
-      const file = fileInput.files[0];
-
-      if (!file) {
-        setStatus("Please select a .xkcd key file.", "error");
-        return;
-      }
-
-      if (!file.name.toLowerCase().endsWith(".xkcd")) {
-        setStatus("Invalid file type.", "error");
-        return;
-      }
-
-      if (file.size > 2048) {
-        setStatus("Key file is too large.", "error");
-        return;
-      }
-
-      redeemButton.disabled = true;
-
-      setStatus("Checking key...", "info");
-
-      try {
-
-        const response = await fetch(WORKER_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/octet-stream"
-          },
-          body: file
-        });
-
-        if (!response.ok) {
-
-          let errorMessage = "Something went wrong.";
-
-          try {
-            const data = await response.json();
-            errorMessage = data.error || errorMessage;
-          } catch {}
-
-          throw new Error(errorMessage);
-        }
-
-        setStatus("Key accepted! Downloading installer...", "success");
-
-        const blob = await response.blob();
-
-        const downloadUrl = URL.createObjectURL(blob);
-
-        const link = document.createElement("a");
-
-        link.href = downloadUrl;
-        link.download = "c58dglw9cr7d1.jpeg";
-
-        document.body.appendChild(link);
-
-        link.click();
-
-        link.remove();
-
-        URL.revokeObjectURL(downloadUrl);
-
-        setStatus("Download started successfully!", "success");
-
-      } catch (error) {
-
-        setStatus(error.message, "error");
-
-      } finally {
-
-        redeemButton.disabled = false;
-
-      }
-
-    });
-  </script>
+  return false;
+};
+</script>
 
 </body>
 </html>
