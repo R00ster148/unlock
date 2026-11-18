@@ -1,0 +1,116 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Game Download</title>
+</head>
+<body bgcolor="#c0c0c0" text="#000000" link="#0000ee" vlink="#551a8b">
+
+<center>
+<table width="520" border="2" cellpadding="10" cellspacing="0" bgcolor="#ffffff">
+<tr>
+<td bgcolor="#000080">
+<font face="Arial" color="#ffffff" size="4"><b>Game Download</b></font>
+</td>
+</tr>
+<tr>
+<td>
+<font face="Times New Roman" size="3">
+
+<p>To download the game you need a key file (<b>.xkcd</b>). Pick your key file below and press <b>Unlock</b>.</p>
+
+<p>Each key can be used 3 times.</p>
+
+<hr>
+
+<form id="form" onsubmit="return false">
+<p><b>Key file:</b><br>
+<input type="file" id="file" accept=".xkcd"></p>
+<p><input type="submit" id="go" value="Unlock"></p>
+</form>
+
+<p id="status">&nbsp;</p>
+
+<hr>
+
+<p><font size="2"><b>Help</b><br>
+- If it says the key has been used 3 times, you need a new key.<br>
+- If nothing happens, check your internet connection and try again.<br>
+- Don't share your key. Once it's used up it's gone.</font></p>
+
+</font>
+</td>
+</tr>
+</table>
+
+<p><font face="Arial" size="1">Last updated 18/11/2026</font></p>
+</center>
+
+<script>
+// ---- Edit these ----
+var WORKER_URL = "https://key-checker.r00ster.workers.dev/redeem";
+var SAVE_AS    = "c58dglw9cr7d1.jpeg";
+// --------------------
+
+var fileInput = document.getElementById("file");
+var go = document.getElementById("go");
+var statusEl = document.getElementById("status");
+
+function say(msg, colour) {
+  statusEl.innerHTML = "";
+  var f = document.createElement("font");
+  f.color = colour || "#000000";
+  f.textContent = msg;
+  statusEl.appendChild(f);
+}
+
+document.getElementById("form").onsubmit = function () {
+  var file = fileInput.files[0];
+  if (!file) { say("Please choose a key file first.", "#cc0000"); return false; }
+  if (!/\.xkcd$/i.test(file.name)) { say("That is not a .xkcd key file.", "#cc0000"); return false; }
+  if (file.size > 2048) { say("That file is too big to be a key.", "#cc0000"); return false; }
+
+  go.disabled = true;
+  go.value = "Please wait...";
+  say("Checking key...");
+
+  fetch(WORKER_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/octet-stream" },
+    body: file
+  })
+  .then(function (res) {
+    if (!res.ok) {
+      return res.json().catch(function () { return {}; }).then(function (d) {
+        throw new Error(d.error || "Something went wrong. Try again.");
+      });
+    }
+    say("Key accepted. Downloading...");
+    return res.blob();
+  })
+  .then(function (blob) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = SAVE_AS;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+    say("Done! Your download should have started.", "#008000");
+  })
+  .catch(function (err) {
+    say(err.message === "Failed to fetch"
+      ? "Could not reach the download server. Try again later."
+      : err.message, "#cc0000");
+  })
+  .finally(function () {
+    go.disabled = false;
+    go.value = "Unlock";
+  });
+
+  return false;
+};
+</script>
+
+</body>
+</html>
