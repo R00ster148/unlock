@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Game Unlock</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: 
+#101116;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 420px;
+      padding: 35px;
+      background: 
+#1b1d25;
+      border: 1px solid 
+#333642;
+      border-radius: 14px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 28px;
+    }
+
+    p {
+      color: #aaa;
+      line-height: 1.5;
+    }
+
+    input[type="file"] {
+      width: 100%;
+      margin: 22px 0;
+      padding: 12px;
+      background: 
+#292c36;
+      color: white;
+      border: 1px solid 
+#414554;
+      border-radius: 7px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 7px;
+      background: 
+#5865f2;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: 
+#4752c4;
+    }
+
+    button:disabled {
+      background: 
+#414454;
+      cursor: not-allowed;
+    }
+
+    #status {
+      margin-top: 20px;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .success {
+      color: 
+#57d68d;
+    }
+
+    .error {
+      color: 
+#ff6464;
+    }
+
+    .info {
+      color: #aaa;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h1>Game Unlock</h1>
+
+    <p>
+      Upload your signed XKCD key file to unlock
+      and download the game installer.
+    </p>
+
+    <input
+      type="file"
+      id="keyFile"
+      accept=".xkcd"
+    >
+
+    <button id="redeemButton">
+      Redeem Key
+    </button>
+
+    <div id="status" class="info">
+      Waiting for key file...
+    </div>
+
+  </div>
+
+  <script>
+    const WORKER_URL =
+      "https://key-checker.r00ster.workers.dev/redeem";
+
+    const fileInput = document.getElementById("keyFile");
+    const redeemButton = document.getElementById("redeemButton");
+    const status = document.getElementById("status");
+
+    function setStatus(message, type) {
+      status.textContent = message;
+      status.className = type;
+    }
+
+    redeemButton.addEventListener("click", async () => {
+
+      const file = fileInput.files[0];
+
+      if (!file) {
+        setStatus("Please select a .xkcd key file.", "error");
+        return;
+      }
+
+      if (!file.name.toLowerCase().endsWith(".xkcd")) {
+        setStatus("Invalid file type.", "error");
+        return;
+      }
+
+      if (file.size > 2048) {
+        setStatus("Key file is too large.", "error");
+        return;
+      }
+
+      redeemButton.disabled = true;
+
+      setStatus("Checking key...", "info");
+
+      try {
+
+        const response = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/octet-stream"
+          },
+          body: file
+        });
+
+        if (!response.ok) {
+
+          let errorMessage = "Something went wrong.";
+
+          try {
+            const data = await response.json();
+            errorMessage = data.error || errorMessage;
+          } catch {}
+
+          throw new Error(errorMessage);
+        }
+
+        setStatus("Key accepted! Downloading installer...", "success");
+
+        const blob = await response.blob();
+
+        const downloadUrl = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+
+        link.href = downloadUrl;
+        link.download = "c58dglw9cr7d1.jpeg";
+
+        document.body.appendChild(link);
+
+        link.click();
+
+        link.remove();
+
+        URL.revokeObjectURL(downloadUrl);
+
+        setStatus("Download started successfully!", "success");
+
+      } catch (error) {
+
+        setStatus(error.message, "error");
+
+      } finally {
+
+        redeemButton.disabled = false;
+
+      }
+
+    });
+  </script>
+
+</body>
+</html>
